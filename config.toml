@@ -52,10 +52,10 @@ theme = "keepit"
 
 
 [params.social]
-    GitHub = "xxxx"
-    Linkedin = "xxxx"
-    Strava = "xxxx"
-    Email   = "xxxx"
+    GitHub = "https://github.com/mct-dev"
+    Linkedin = "https://www.linkedin.com/in/mikectobias/"
+    # Strava = ""
+    Email   = "mike.c.tobias@gmail.com"
     #Twitter = "xxxx"
     #Instagram = "xxxx"
     #Facebook = "xxxx"
