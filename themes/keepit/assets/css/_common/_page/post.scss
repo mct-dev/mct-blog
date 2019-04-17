@@ -49,7 +49,7 @@
             padding-bottom: .3em;
         }
         h2::before {
-            content: "#";
+            // content: "#";
             margin-right: 5px;
             color: $light-post-link-color;
             .dark-theme & {
@@ -88,21 +88,18 @@
             padding: 7px;
             font-size: 13px;
             font-family: Consolas, Monaco, Menlo, Consolas, monospace;
-            word-break: break-all;
             word-wrap: break-word;
         }
 
         code:not([class]) {
+            background: #bdbdbd36;
+            color: #985656;
             padding: 5px 5px;
-            background: #fff;
-            border: 1px solid #ddd;
-            box-shadow: 1px 1px 0 #fff, 2px 2px 0 #ddd;
             margin-left: 3px;
             margin-right: 3px;
 
             .dark-theme &:not([class]) {
-                background: transparent;
-                box-shadow: 1px 1px 0 $dark-font-secondary-color, 2px 2px 0 $dark-font-secondary-color;
+                background: #4040404d;
             }
         }
 
