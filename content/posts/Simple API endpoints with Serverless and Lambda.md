@@ -1,5 +1,5 @@
 ---
-draft: true
+# draft: true
 
 title: Simple API Endpoints with Serverless and Lambda
 description: Using AWS Lambda and the Serverless Framework to build platform-agnostic API's and serverless functions.

@@ -1,5 +1,5 @@
 ---
-draft: true
+# draft: true
 
 title: Netflix Voting Service - Case Study
 description: Building a voting service to solve a fictitious enterprise problem.
