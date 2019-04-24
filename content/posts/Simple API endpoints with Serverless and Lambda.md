@@ -69,7 +69,7 @@ module.exports.hello = async (event) => {
 };
 ```
 
-We can deploy this function immediately, if we wanted to!  Just `cd` into this directory - the `…/voting-service/` directory - and run `sls deploy`.  This will create a CloudFormation template and run it in AWS, which you can see in the AWS Management Console.  Then, to get rid of _everything_ that this deploy command did, you can either run `sls remove` or you can open the CloudFormation stack in AWS and delete the stack manually.
+We can deploy this function immediately, if we wanted to.  Just `cd` into this directory - the `…/voting-service/` directory - and run `sls deploy`.  This will create a CloudFormation template and run it in AWS, which you can see in the AWS Management Console.  Then, to get rid of everything that this deploy command did, you can either run `sls remove` or you can open the CloudFormation stack in AWS and delete the stack manually.
 
 This intro template from `serverless` would only be this single Lambda function and nothing else.  What we need is a function that handles data and adds it to a SQS queue and an API endpoint to send our voting data to.  Let's add those things now.
 
@@ -209,4 +209,4 @@ The returned string of JSON doesn't look pretty, but it does show that the funct
 
 We can now run `sls deploy` within our `/serverless-functions/voting-service/` directory and it will deploy everything that we need into AWS, permissions and all!  Then, if we want to remove all of these resources in AWS we can simply run `sls remove` in the same directory.  Simple. 
 
-The next step in our service will be another serverless function which checks our SQS queue for messages and handles these messages appropriately.  We'll build this bit in [the next post of this series](#).  See you there!
+The next step in our service will be another serverless function which checks our SQS queue for messages and handles these messages appropriately.  We'll build this bit in [the next post of this series]({{< ref "Simple API Endpoints with Serverless and Lambda.md" >}}).  See you there!
