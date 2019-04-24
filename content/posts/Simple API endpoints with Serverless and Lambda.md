@@ -1,6 +1,4 @@
 ---
-# draft: true
-
 title: Simple API Endpoints with Serverless and Lambda
 description: Using AWS Lambda and the Serverless Framework to build platform-agnostic API's and serverless functions.
 author: "Mike Tobias"
@@ -11,17 +9,13 @@ categories:
 - AWS
 series:
 - Case Study: Netflix Voting Service
-
----
-
-# Simple API Endpoints with Serverless and Lambda
-
 ---
 
 This is part 2 of the series.  Feel free to skip around to other sections using the links below.
 
-1. [Case Study and Grooming]({{< ref "AWS SQS Microservice Pipeline.md" >}}) 
-2. [Simple API Endpoints with Serverless and Lambda]({{< ref "Simple API Endpoints with Serverless and Lambda.md" >}}) 
+1. [Case Study and Grooming]({{< ref "AWS SQS Microservice Pipeline.md" >}})
+2. [Simple API Endpoints with Serverless and Lambda]({{< ref "Simple API Endpoints with Serverless and Lambda.md" >}})
+3. [Handling SQS Messages with Serverless Functions]({{< ref "Handling SQS Messages with Serverless.md" >}})
 
 ---
 
@@ -45,11 +39,11 @@ Also, if you're unfamiliar with any of the subjects discussed in this post, I'd 
 
 First, we'll install the Serverless Framework.  There's some great directions on how you can do that [here](<https://serverless.com/framework/docs/getting-started/>), but essentially all you'll be doing is running `npm install -g serverless`.  This will install the cli tools for the framework, accessible through the `sls` or `serverless` commands.
 
-Now we can initialize a new project directory and create our serverless functions.  First, create a root project directory for yourself.  Mine will be `~/projects/voting-service/`. I also chose to add a subdirectory in this root folder called `serverless-functions`, just to keep the serverless portion of this service separated.  I'll use this location to store all of my Lambda functions for the project.  So, let's `cd` into this directory and run the below command.
+Now we can initialize a new project directory and create our serverless functions.  First, create a root project directory for yourself.  Mine will be `~/projects/voting-project/`. I also chose to add a subdirectory in this root folder called `serverless-functions`, just to keep the serverless portion of this service separated.  I'll use this location to store all of my Lambda functions for the project.  So, let's `cd` into this directory and run the below command.
 
 `sls create —template aws-nodejs —path voting-service`
 
-This command will create all of the necessary files for your serverless function, using a Node.js template.  Let's open the `handler.js` file (full path: `~/projects/voting-service/serverless-functions/voting-service/handler.js`). This file contains some boilerplate code for a Node.js lambda function:
+This command will create all of the necessary files for your serverless function, using a Node.js template.  Let's open the `handler.js` file (full path: `~/projects/voting-project/serverless-functions/voting-service/handler.js`). This file contains some boilerplate code for a Node.js lambda function:
 
 ```javascript
 // handler.js
@@ -69,7 +63,7 @@ module.exports.hello = async (event) => {
 };
 ```
 
-We can deploy this function immediately, if we wanted to.  Just `cd` into this directory - the `…/voting-service/` directory - and run `sls deploy`.  This will create a CloudFormation template and run it in AWS, which you can see in the AWS Management Console.  Then, to get rid of everything that this deploy command did, you can either run `sls remove` or you can open the CloudFormation stack in AWS and delete the stack manually.
+We can deploy this function immediately, if we wanted to!  Just `cd` into this directory - the `…/voting-service/` directory - and run `sls deploy`.  This will create a CloudFormation template and run it in AWS, which you can see in the AWS Management Console.  Then, to get rid of _everything_ that this deploy command did, you can either run `sls remove` or you can open the CloudFormation stack in AWS and delete the stack manually.
 
 This intro template from `serverless` would only be this single Lambda function and nothing else.  What we need is a function that handles data and adds it to a SQS queue and an API endpoint to send our voting data to.  Let's add those things now.
 
@@ -123,49 +117,85 @@ Ok, now let's throw some useful code in this file.  Currently, our function simp
 
 ```javascript
 // post-vote.js
-'use strict';
-const AWS = require('aws-sdk');
+"use strict";
+const AWS = require("aws-sdk");
+const parseEventData = (apiEventData) => {
+  if (typeof apiEventData !== "object" || !apiEventData.queryStringParameters) {
 
-AWS.config.update({region: 'us-east-1'});
+    throw new Error("Incorrect data format.");
 
+  }
+
+  return apiEventData.queryStringParameters;
+};
+
+AWS.config.update({region: "us-east-1"});
+
+/**
+ * Function accepts event data from AWS API Gateway endpoint.
+ * This endpoint should use the "LAMBDA_PROXY" Type, providing
+ * the HTTP request details as well as the query string parameters
+ * in the `event` parameter.
+ */
 module.exports.postVote = async (event, context) => {
-  let sqs = new AWS.SQS({apiVersion: '2012-11-05'});
+  let sqs = new AWS.SQS({apiVersion: "2012-11-05"});
   let voteQueueUrl;
   let sqsMessageResponse;
+  let voteData;
+
+  try {
+    voteData = parseEventData(event);
+  }
+  catch (err) {
+    return {
+      statusCode: 400,
+      body: { error: err }
+    };
+  }
 
   try {
     voteQueueUrl = await sqs.getQueueUrl({
-        QueueName: 'voting-app-queue',
+      QueueName: "voting-app-queue",
     }).promise();
+
     sqsMessageResponse = await sqs.sendMessage({
-      MessageBody: JSON.stringify(event),
+      MessageBody: JSON.stringify(voteData),
       QueueUrl: voteQueueUrl.QueueUrl
-    }).promise()
+    }).promise();
   }
   catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify(err)
-    }
+      body: { error: err }
+    };
   }
+
   return {
     statusCode: 200,
-    body: JSON.stringify({
+    body: {
       voteQueueUrl,
       sqsMessageResponse,
-      input: event,
-    }),
+      input: event
+    }
   };
 };
 ```
 
 A couple of things to go over here.  First, the AWS SDK is made available in Lambda to any programming language that needs it.  In Nodejs, this is the `aws-sdk` package.  This package allows us to access other AWS services, in this case the SQS service.  Also, when using the AWS SDK, we always want to specify the region we're working in as well as a specific API version for the service that we use.  We've done that here near the top of the file.  Let's go over the code in a bit more detail.
 
-We first create a new `AWS.SQS` object, specifying its most recent API version.  Then, we collect the `QueueUrl` for a SQS Queue named `voting-app-queue`.  This is a SQS queue that I've created directly through the AWS management console.  You can use the AWS SDK to create a queue, but we don't necessarily need to programmatically create a queue in this scenario, so I just created one by hand.  Once we have this URL, we can add messages to our queue!  So, the next step (`sqs.sendMessage`) sends a message to our QueueUrl adding the `event` as the MessageBody.  
+First, we require the `aws-sdk` and establish a function for parsing the event data (provided by the API endpoint).  Our endpoint will be set up with "Lambda Proxy" enabled by default, which means the `event` object passed in to our function will have quite a bit of information in it.  In our case, all we want to do is make sure that `event` is an object and that it contains the `queryStringParameters` property.  This is where our voting data should be found.  If these things aren't available, we'll just throw an error with a quick message explaining that the voting data was not passed in correctly to the API endpoint.  This error can be caught in our `async` function and returned to the client with an appropriate status code.  If all goes well, we'll return the `queryStringParameters`. 
 
-Another cool thing to point out here is the `async` / `await` syntax.  Lambda supports more recent versions of Nodejs, which allows us to use this syntax to handle promises.  This makes our code much cleaner, avoiding lots of callbacks and such, especially while dealing with the AWS SDK - most things in there will be asynchronous calls, and can be made into a Nodejs `Promise` by calling the [`.promise()`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html#promise-property>) function on the [`AWS Request`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html>) object (returned by `getQueueUrl` and `sendMessage` in our case). 
+In our main function, `postVote`, we first initialize our SQS object and all the variables we'll use in this function.  Then, we'll parse the event data within a try / catch block.  If the event data isn't correct here, we'll return a `400` status code and the error as a property of `body`. Then we have our final try / catch block.  This section will send the voting data to our SQS queue.  If something goes wrong, we'll `catch` the error and return it with a `500` status code.  Nothing should go wrong here, so if it does then it would be a "server" error.  
 
-This function is also associated with an API endpoint, so we want to make sure we return something to that API call.  In this case, if something goes wrong while dealing with our SQS service, we'll return a `500` error code ("Internal Server Error") as well as the error details.  We could probably also add some more checks in this function to verify the data, returning different error codes if needed, but for now this will do just fine.  If all goes well in our function, we'll have successfully added a message to the SQS queue and we return a `200` status and some information about our queue and the message we sent.
+----
+
+An important thing to note here is that most functions in the AWS SDK will be asynchronous calls, and can be made into a Nodejs `Promise` by calling the [`.promise()`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html#promise-property>) function on the [`AWS Request`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html>) object (returned by `getQueueUrl` and `sendMessage` in our case).  This returns a `Promise` instead of using the callback, which allows us to use `async` and `await` to write cleaner code!
+
+----
+
+To add the voting data to our SQS queue, we first collect the `QueueUrl` for a SQS Queue named `voting-app-queue`.  This is a SQS queue that I've created directly through the AWS management console.  You can use the AWS SDK to create a queue, but we don't necessarily need to programmatically create a queue in this scenario, so I just created one by hand.  Once we have this URL, we can add messages to our queue!  So, the next step (`sqs.sendMessage`) sends a message to our QueueUrl adding the `voteData` that we collected earlier as the MessageBody.  
+
+At this point, if we've not hit (or caught) any errors so far, we'll reach the end of the function where we can return a `200` status and whatever body content we want.  In this case, we'll return the SQS queue URL, the response message from when we added our voting data to the queue, and the original input `event`. 
 
 ## Permissions
 
@@ -209,4 +239,4 @@ The returned string of JSON doesn't look pretty, but it does show that the funct
 
 We can now run `sls deploy` within our `/serverless-functions/voting-service/` directory and it will deploy everything that we need into AWS, permissions and all!  Then, if we want to remove all of these resources in AWS we can simply run `sls remove` in the same directory.  Simple. 
 
-The next step in our service will be another serverless function which checks our SQS queue for messages and handles these messages appropriately.  We'll build this bit in [the next post of this series]({{< ref "Simple API Endpoints with Serverless and Lambda.md" >}}).  See you there!
+The next step in our project will be another serverless function which checks our SQS queue for messages and handles these messages appropriately.  We'll build this bit in [the next post of this series](#).  See you there!
