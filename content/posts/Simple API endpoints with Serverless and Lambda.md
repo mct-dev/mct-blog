@@ -116,107 +116,128 @@ module.exports.postVote = async (event) => {
 Ok, now let's throw some useful code in this file.  Currently, our function simply accepts the `event` object provided by the API endpoint and returns an object with a `200` status code and a `body` property containing a simple message and the `event` object.  Let's update this so that, instead, we collect our voting data from the `event` parameter and add this voting data to a specific SQS queue.
 
 ```javascript
-// post-vote.js
 "use strict";
 const AWS = require("aws-sdk");
 const parseEventData = (apiEventData) => {
-  if (typeof apiEventData !== "object" || !apiEventData.queryStringParameters) {
 
-    throw new Error("Incorrect data format.");
-
+  // data should be passed in through query string params
+  if (apiEventData.queryStringParameters) {
+    return apiEventData.queryStringParameters;
   }
 
-  return apiEventData.queryStringParameters;
+  return null;
 };
 
 AWS.config.update({region: "us-east-1"});
 
-/**
- * Function accepts event data from AWS API Gateway endpoint.
- * This endpoint should use the "LAMBDA_PROXY" Type, providing
- * the HTTP request details as well as the query string parameters
- * in the `event` parameter.
- */
 module.exports.postVote = async (event, context) => {
-  let sqs = new AWS.SQS({apiVersion: "2012-11-05"});
+  const sqs = new AWS.SQS({apiVersion: "2012-11-05"});
+  const sns = new AWS.SNS({apiVersion: "2010-03-31"});
   let voteQueueUrl;
-  let sqsMessageResponse;
   let voteData;
 
-  try {
-    voteData = parseEventData(event);
-  }
-  catch (err) {
-    return {
-      statusCode: 400,
-      body: { error: err }
-    };
-  }
+  voteData = parseEventData(event);
 
+  if (!voteData) {
+    return {
+      statusCode: 500,
+      isBase64Encoded: false,
+      headers: {
+        "Content-Type": "text/plain"
+      },
+      body: JSON.stringify({
+        awsRequestId: context.awsRequestId,
+        error: {
+          message: "No query string parameters were found!"
+        },
+        input: event
+      })
+    };
+
+  }
+  
   try {
     voteQueueUrl = await sqs.getQueueUrl({
-      QueueName: "voting-app-queue",
+      QueueName: process.env.SQS_QUEUE_NAME,
     }).promise();
-
-    sqsMessageResponse = await sqs.sendMessage({
+  
+    await sqs.sendMessage({
       MessageBody: JSON.stringify(voteData),
       QueueUrl: voteQueueUrl.QueueUrl
     }).promise();
+    console.log("SQS message sent successfully!");
+  } catch (err) {
+    console.error(`SQS message send FAILED. Error: ${err}`);
   }
-  catch (err) {
-    return {
-      statusCode: 500,
-      body: { error: err }
-    };
+
+  // notify our second function that there's a new vote to handle
+  try {
+    await sns.publish({
+      Message: "New Vote Posted!",
+      TopicArn: process.env.SNS_TOPIC_ARN
+    });
+    console.log("SNS published successfully!");
+  } catch (err) {
+    console.error(`SQS message send FAILED. Error: ${err}`);
   }
+
 
   return {
     statusCode: 200,
-    body: {
-      voteQueueUrl,
-      sqsMessageResponse,
+    headers: {
+      "Content-Type": "text/plain"
+    },
+    isBase64Encoded: false,
+    body: JSON.stringify({
+      awsRequestId: context.awsRequestId,
+      message: "Vote successfully processed.",
       input: event
-    }
+    })
   };
 };
+
 ```
 
-A couple of things to go over here.  First, the AWS SDK is made available in Lambda to any programming language that needs it.  In Nodejs, this is the `aws-sdk` package.  This package allows us to access other AWS services, in this case the SQS service.  Also, when using the AWS SDK, we always want to specify the region we're working in as well as a specific API version for the service that we use.  We've done that here near the top of the file.  Let's go over the code in a bit more detail.
+A couple of things to go over here.  First, the AWS SDK is made available in Lambda to all supported languages.  In Nodejs, this is the `aws-sdk` package.  This package allows us to access other AWS services, in this case the SQS service.  Also, when using the AWS SDK, we always want to specify the region we're working in as well as a specific API version for the service that we use.  We've done that here near the top of the file.  Let's go over the code in a bit more detail.
 
-First, we require the `aws-sdk` and establish a function for parsing the event data (provided by the API endpoint).  Our endpoint will be set up with "Lambda Proxy" enabled by default, which means the `event` object passed in to our function will have quite a bit of information in it.  In our case, all we want to do is make sure that `event` is an object and that it contains the `queryStringParameters` property.  This is where our voting data should be found.  If these things aren't available, we'll just throw an error with a quick message explaining that the voting data was not passed in correctly to the API endpoint.  This error can be caught in our `async` function and returned to the client with an appropriate status code.  If all goes well, we'll return the `queryStringParameters`. 
+First, we require the `aws-sdk` and establish a function for parsing the event data (provided by the API endpoint).  Our endpoint will be set up with "Lambda Proxy" enabled by default, which means the `event` object passed in to our function will have quite a bit of information in it.  This also means that our response from this function needs to have a `body` which is formatted properly.  We'll just use the `JSON.stringify()` method for this. 
 
-In our main function, `postVote`, we first initialize our SQS object and all the variables we'll use in this function.  Then, we'll parse the event data within a try / catch block.  If the event data isn't correct here, we'll return a `400` status code and the error as a property of `body`. Then we have our final try / catch block.  This section will send the voting data to our SQS queue.  If something goes wrong, we'll `catch` the error and return it with a `500` status code.  Nothing should go wrong here, so if it does then it would be a "server" error.  
+We then set up a quick function for processing the data from our `event` object.  In our case, all we want to do is make sure that `event` _is_ an object and that it contains the `queryStringParameters` property.  This is where our voting data should be found.  If these things aren't available, we'll just throw an error with a quick message explaining that the voting data was not passed in correctly to the API endpoint.  This error can be caught in our `async` function and returned to the client with an appropriate status code.  But if all goes well, we'll return the `queryStringParameters`. 
 
-----
-
-An important thing to note here is that most functions in the AWS SDK will be asynchronous calls, and can be made into a Nodejs `Promise` by calling the [`.promise()`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html#promise-property>) function on the [`AWS Request`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html>) object (returned by `getQueueUrl` and `sendMessage` in our case).  This returns a `Promise` instead of using the callback, which allows us to use `async` and `await` to write cleaner code!
+In our main function, `postVote`, we first initialize the SQS and `SNS` objects and initialize the variables we'll use in this function.  Then, we get our voting data from the `event` parameter, using the function we created.  If the no voting data was found, we'll return a `400` status code and the error as a property of `body`. If we do have data, we'll continue by collecting the URL of our SQS queue and then adding a new message to this queue.  This bit will be in a try / catch block so that, if we hit any problems here, we can log an error message with the details.  After this, we'll publish an SNS message.  This will serve as one of the triggers for our next lambda function.  This other function will be subscribed to this SNS topic and will be triggered whenever we publish to that topic.  Again, we surround the publishing of the SNS message in a try / catch so that we can log a specific error if something goes wrong with this part.  Finally, if we ran everything successfully in our main `postVote` function, we'll return a 200 status and a success message in the body.   
 
 ----
 
-To add the voting data to our SQS queue, we first collect the `QueueUrl` for a SQS Queue named `voting-app-queue`.  This is a SQS queue that I've created directly through the AWS management console.  You can use the AWS SDK to create a queue, but we don't necessarily need to programmatically create a queue in this scenario, so I just created one by hand.  Once we have this URL, we can add messages to our queue!  So, the next step (`sqs.sendMessage`) sends a message to our QueueUrl adding the `voteData` that we collected earlier as the MessageBody.  
+An important thing to note in our above code is that most functions in the AWS SDK will be asynchronous calls, and can be made into a Nodejs `Promise` by calling the [`.promise()`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html#promise-property>) function on the [`AWS Request`](<https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Request.html>) object (returned by `getQueueUrl` and `sendMessage` in our case).  This returns a `Promise` instead of using the callback, which allows us to use `async` and `await` to write cleaner code!
 
-At this point, if we've not hit (or caught) any errors so far, we'll reach the end of the function where we can return a `200` status and whatever body content we want.  In this case, we'll return the SQS queue URL, the response message from when we added our voting data to the queue, and the original input `event`. 
+----
 
 ## Permissions
 
-If you've worked in AWS before, you'll know that we need to set up some permissions here. Our Lambda function will have a couple of permissions by default - logging to CloudWatch, for example - but it won't have the ability to do things in SQS unless we explicitly give those permissions to it.  This is done through "Roles" in AWS.  
+If you've worked in AWS before, you'll know that we need to set up some permissions here in order for these functions to run properly. Our Lambda function will have a couple of permissions by default - logging to CloudWatch, for example, which is done with the `console.log` statements - but it won't have the ability to do things in SQS or SNS unless we explicitly give those permissions to it.  This is done through IAM Roles.
 
-With the Serverless framework, we can set up a role within our code.  This makes management of the service as a whole much easier.  To do this, we'll open up the `serverless.yml` file again and make a minor change.  Here's the result:
+With the Serverless framework, we can set up a role within our code.  This makes management of the service as a whole much easier.  To do this, we'll open up the `serverless.yml` file again and make some changes.  Here's the result:
 
 ```yaml
-# serverless.yml
 service: voting-app
 
 provider:
   name: aws
   runtime: nodejs8.10
-  stage: dev
-  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  environment:
+    SQS_QUEUE_NAME: ${self:service}-${self:provider.stage}-queue
+    SNS_TOPIC: ${self:service}-${self:provider.stage}-topic
   iamRoleStatements:
-    - Effect: "Allow"
+    - Effect: Allow
       Action:
-        - sqs:*
-      Resource: "*"
+        - SQS:*
+      Resource: {"Fn::Join" : ["", ["arn:aws:sqs:${self:provider.region}:", {"Ref":"AWS::AccountId"}, ":${self:provider.environment.SQS_QUEUE_NAME}" ] ] }
+    - Effect: Allow
+      Action:
+        - SNS:*
+      Resource: {"Fn::Join":["", ["arn:aws:sns:${self:provider.region}:", {"Ref":"AWS::AccountId"}, ":${self:provider.environment.SNS_TOPIC}"]]}
 
 functions:
   post-vote:
@@ -225,9 +246,24 @@ functions:
       - http:
           path: vote
           method: post
+    environment:
+      SNS_TOPIC_ARN: {"Fn::Join":["", ["arn:aws:sns:${self:provider.region}:", {"Ref":"AWS::AccountId"}, ":${self:provider.environment.SNS_TOPIC}"]]}
+
+resources:
+  Resources:
+    VotesQueue:
+      Type: 'AWS::SQS::Queue'
+      Properties:
+        QueueName: ${self:provider.environment.SQS_QUEUE_NAME}
 ```
 
-With the `iamRoleStatements` section, we are able to define the AWS Roles that we want our functions to assume.  Here we've added a role which allows our function to take *any* action on *any* SQS resource.  You can check [here](<https://serverless.com/framework/docs/providers/aws/guide/iam/>) for more information on how to set up roles in the Serverless Framework.
+The first thing you've probably noticed is a lot of these: `{}`.  What's going on here? Well, in the serverless yaml files you can use variables and functions!  Take a quick look [here](https://serverless.com/framework/docs/providers/aws/guide/variables/) to get a good idea on how variables work, and [here](https://theserverlessway.com/aws/cloudformation/template-functions/) for a nice blog post on the functions.  Using variables and functions allows us to avoid repeating ourselves - see the [DRY Policy](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) - and also helps keep our naming conventions all the same throughout our pipeline. 
+
+The `iamRoleStatements` section is where we establish our IAM Roles.  These roles allow our Lambda functions to interact with SQS and SNS.  Here we've just said "Let our service access this specific resource and take any action on it" for both SQS and SNS. The resources in question are established at the `Resource` fields, where we build an AWS ARN which will specifically point to our SNS Topic and SQS Queue.
+
+We've also added *environment variables* here for the SQS queue name and the SNS topic name.  These environment variables can be accessed at runtime by our functions!  You may have noticed in our function code above that we are collecting the SQS queue name and SNS topic name from `process.env`.  The variables we establish here in the `environment` section end up in that `process.env` object! 
+
+The last important bit in this file is the `resources` section.  This section will create actual AWS resources for us when we run our serverless service!   Here we create a SQS Queue, collecting the Queue Name from our environment variable at the top of the file. 
 
 ## Finishing Up
 
@@ -237,6 +273,6 @@ That pretty much does it for this bit of our pipeline.  We can test our function
 
 The returned string of JSON doesn't look pretty, but it does show that the function is working properly.  If you had trouble running this locally, you'll likely have to [configure your aws cli](<https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html>) so that the AWS SDK we're using can access your AWS resources.  
 
-We can now run `sls deploy` within our `/serverless-functions/voting-service/` directory and it will deploy everything that we need into AWS, permissions and all!  Then, if we want to remove all of these resources in AWS we can simply run `sls remove` in the same directory.  Simple. 
+To deploy this to AWS, we run `sls deploy` within our `/serverless-functions/voting-service/` directory.  This will deploy everything that we need into AWS, permissions and all!  Then, if we want to remove all of these resources in AWS we can simply run `sls remove` in the same directory.  Simple. 
 
-The next step in our project will be another serverless function which checks our SQS queue for messages and handles these messages appropriately.  We'll build this bit in [the next post of this series](#).  See you there!
+The next step in our project will be another serverless function which checks our SQS queue for messages and handles these messages appropriately.  We'll build this bit in [the next post of this series]({{< ref "Handling SQS Messages with Serverless.md" >}}).  See you there!
