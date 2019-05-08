@@ -1,6 +1,4 @@
 ---
-draft: true
-
 title: Handling SQS Messages with Serverless Functions
 description: Using Serverless functions to collect and handle messages from an AWS SQS queue.
 author: "Mike Tobias"
