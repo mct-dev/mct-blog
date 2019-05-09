@@ -1,0 +1,3 @@
+[submodule "mikectobias.com"]
+	path = mikectobias.com
+	url = git@github.com:mct-dev/mct-dev.github.io.git
