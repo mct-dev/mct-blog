@@ -78,20 +78,19 @@
             color: $light-post-link-hover-color;
             .dark-theme &:hover {
                 color: $dark-post-link-hover-color;
-                font-weight: bold;
-                text-decoration: underline;
             }
         }
 
         code,
         pre {
             padding: 7px;
-            font-size: 13px;
+            font-size: 12px;
+            line-height: 1.2rem;
             font-family: Consolas, Monaco, Menlo, Consolas, monospace;
             word-wrap: break-word;
             @media screen and (max-width: 550px) {
                 font-size: 11px;
-                line-height: 1rem;
+                padding-left: 0;
             }
         }
 
