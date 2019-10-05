@@ -19,11 +19,11 @@ This is part 2 of the series.  Feel free to skip around to other sections using 
 
 ---
 
-## Objective
+#### Objective
 
 Our objective in this segment is to create an API endpoint attached to a Lambda function which will handle vote submissions, adding each vote to an SQS Message Queue to be processed at a later time.  This is the first part of our voting pipeline, an application that we're designing as part of a fictitious case study.  See [part 1]() of this series for more info on that.  
 
-## Intro
+#### Intro
 
 We'll be using the [Serverless Framework](<https://serverless.com/framework/>) to build our "back-end" functions and API endpoints.  This framework is platform-agnostic, meaning we don't _have_ to use AWS as our cloud platform.  We could use other providers as well!  The serverless functions are also a great choice here because they are efficient, cost-effective, and extremely scalable.  
 
@@ -35,7 +35,7 @@ Also, if you're unfamiliar with any of the subjects discussed in this post, I'd 
 - [Amazon Simple Queue Service (SQS)](<https://aws.amazon.com/sqs/>)
 - [The Serverless Framework (Docs)](<https://serverless.com/framework/docs/>)
 
-## Serverless Framework - Getting Started
+#### Serverless Framework - Getting Started
 
 First, we'll install the Serverless Framework.  There's some great directions on how you can do that [here](<https://serverless.com/framework/docs/getting-started/>), but essentially all you'll be doing is running `npm install -g serverless`.  This will install the cli tools for the framework, accessible through the `sls` or `serverless` commands.
 
@@ -67,7 +67,7 @@ We can deploy this function immediately, if we wanted to!  Just `cd` into this d
 
 This intro template from `serverless` would only be this single Lambda function and nothing else.  What we need is a function that handles data and adds it to a SQS queue and an API endpoint to send our voting data to.  Let's add those things now.
 
-## Add an API Endpoint
+#### Add an API Endpoint
 
 The main benefit of using the Serverless Framework comes from the `serverless.yml` file.  This file defines not only your serverless functions, but any other services and rules related to these functions.  There is quite a bit of documentation on this file (and other parts of the framework), which you can find [here](<https://serverless.com/framework/docs/>). To add an API endpoint, all it takes is to update our `serverless.yml` file to contain the right bits of information.  Here's the final result:
 
@@ -101,7 +101,7 @@ In short, what we do here is:
 
 You'll notice that the names of the file and function in our `.yml` file don't match up at the moment.  The `postVote` function does not currently exist, and neither does the `post-vote` file.  Currently, the `serverless.yml` file would have to show `handler.hello` for our function to work properly.  Let's update that `.js` file now before we test and deploy this API endpoint.  We'll change the names of the file and function and update the code within.
 
-## Building our Serverless Function
+#### Building our Serverless Function
 
 First, a quick update of the file name.  We'll name the file `post-vote.js` and update the function name to `postVote`.
 
@@ -212,7 +212,7 @@ An important thing to note in our above code is that most functions in the AWS S
 
 ----
 
-## Permissions
+#### Permissions
 
 If you've worked in AWS before, you'll know that we need to set up some permissions here in order for these functions to run properly. Our Lambda function will have a couple of permissions by default - logging to CloudWatch, for example, which is done with the `console.log` statements - but it won't have the ability to do things in SQS or SNS unless we explicitly give those permissions to it.  This is done through IAM Roles.
 
@@ -265,7 +265,7 @@ We've also added *environment variables* here for the SQS queue name and the SNS
 
 The last important bit in this file is the `resources` section.  This section will create actual AWS resources for us when we run our serverless service!   Here we create a SQS Queue, collecting the Queue Name from our environment variable at the top of the file. 
 
-## Finishing Up
+#### Finishing Up
 
 That pretty much does it for this bit of our pipeline.  We can test our function locally by installing the AWS SDK into our local project with `npm i aws-sdk` and then running `sls invoke local —function post-vote —data <insert data string>`.  Here's an example that I ran locally:
 

@@ -2,3 +2,9 @@
 // Custom style
 // ==============================
 // You can override the variables in _variables.scss to customize the style
+
+pre {
+	@media screen and (max-width: 550px) {
+		font-size: 11px !important;
+	}
+}
