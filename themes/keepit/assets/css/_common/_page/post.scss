@@ -89,6 +89,10 @@
             font-size: 13px;
             font-family: Consolas, Monaco, Menlo, Consolas, monospace;
             word-wrap: break-word;
+            @media screen and (max-width: 550px) {
+                font-size: 11px;
+                line-height: 1rem;
+            }
         }
 
         code:not([class]) {

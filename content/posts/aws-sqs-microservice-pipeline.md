@@ -21,11 +21,11 @@ This is part 1 of the series.  Feel free to skip around to other sections using 
 
 ---
 
-## Case Study
+#### Case Study
 
 We are working at Netflix.  Yep, you and me both.  Our company, Netflix, has recently implemented their voting functionality where users can vote on different aspects of the show or movie they just watched.  We have been tasked with creating a pipeline which can receive and process an extremely large number of these votes in the most efficient, scalable, and cost effective way possible.  
 
-## Grooming
+#### Grooming
 
 In this scenario, we can assume that the data will be passed from the front end as JSON.  The JSON will have a particular structure and we will have to provide a URL endpoint where the JSON can be sent.  Since the quantity of votes received per second or minute may change dramatically based on time of day or any number of other factors, we likely do not want to have a powerful server running all the time waiting to collect these votes.  This seems like an ideal situation for an [AWS API Gateway](<https://aws.amazon.com/api-gateway/>) connected to 1 or more serverless [Lambda](<https://aws.amazon.com/lambda/>) functions.  
 

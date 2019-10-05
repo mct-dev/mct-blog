@@ -19,10 +19,10 @@ This is part 3 of the series.  Feel free to skip around to other sections using 
 
 ---
 
-## Objective
+#### Objective
 In our [last post]({{< ref "/posts/simple-api-endpoints-with-serverless-and-lambda.md" >}}) we set up an API endpoint and a serverless function which will receive voting data, add it to our SQS Queue, then publish to an SNS topic. Now, we need to build a function which will consume messages from this SQS Queue and add them to a database. We'll use DynamoDB for our database because it's scalable, reliable, NoSQL, and integrates well with our pipeline. 
 
-## The new function
+#### The new function
 
 Let's get right to it. Here's our second function: 
 
@@ -238,7 +238,7 @@ Now we collect our SQS queue URL and begin processing messages. Assuming a queue
 
 If any errors were hit on our way to this point, we've logged them to AWS CloudWatch and returned a non-zero value, ending the function.  But, if we made it this far without errors, we delete the message from our SQS queue and then we're done!
 
-## The updated yaml file
+#### The updated yaml file
 So, now comes the second major part of this segment of our pipeline: the `serverless.yml` file. Here's the updated version. Take a quick read.
 
 ```yaml
@@ -332,7 +332,7 @@ We also use a new section here called `custom`.  This is a good area for you to 
 
 Now, you can run `serverless deploy` in this directory to create this DynamoDB table!
 
-## Other thoughts
+#### Other thoughts
 
 One thought you may have had while reading this is:
 
@@ -340,7 +340,7 @@ One thought you may have had while reading this is:
 
 No. The `MessageId` value provided by each message from our SQS queue will remain the same if we fail to delete that item. We will, indeed, end up collecting this message again later on, but since we're using this value as our primary key in the DynamoDB table we'd avoid duplicating it.  When you try to put a record in a DynamoDB table and the record's primary key already exists, DyanmoDB will wimply simply [overwrite the old item with the new](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html) one. Since the data from our SQS message will not have changed, this would be alright with us!
 
-## Finishing Up
+#### Finishing Up
 
 We have now successfully built our pipeline!  To sum it all up, we now have:
 * An API endpoint where a client can submit voting data.
