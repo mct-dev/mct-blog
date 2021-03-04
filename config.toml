@@ -1,8 +1,12 @@
-baseURL = "https://mct-dev.github.io"
+baseURL = "https://mikectobias.com"
 languageCode = "en-us"
 title = "Mike Tobias"
 
+# theme = "github.com/nodejh/hugo-theme-mini"
+
 theme = "keepit"
+enableEmoji = true
+enableRobotsTXT = true
 
 [menu]
   [[menu.main]]
@@ -12,7 +16,7 @@ theme = "keepit"
 
   [[menu.main]]
     name = "Blog"
-    url = "/posts/"
+    url = "/posts"
     weight = 2
 
   # [[menu.main]]
@@ -42,8 +46,8 @@ theme = "keepit"
     avatar = "/images/me/avatar.jpg" #comment it to use gravatar
     socialShare = true
     
-    description = "" # site description
-    keywords = "" # site keywords
+    description = "Technology, Software, and Life" # site description
+    keywords = "technology, software, development, life, learning, education, blogging, coding, javascript, react, c#, .net, network, security" # site keywords
 
     license= 'Released under <a rel="license external nofollow noopener noreffer" href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">CC BY-NC 4.0</a>'
 
@@ -111,14 +115,14 @@ theme = "keepit"
     #Thingiverse = "xxxx"
 
 [params.share]
-# Twitter = true
-# Facebook = true
-#Reddit = true
+Twitter = true
+HackerNews = true
+Facebook = true
+Reddit = true
 Linkedin = true
 #Pinterest = true
-#HackerNews = true
 #Mix = true
-#Tumblr = true
+Tumblr = true
 #VKontakte = true
 #Douban = true
 #Weibo = true
