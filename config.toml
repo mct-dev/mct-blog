@@ -31,9 +31,12 @@ enableRobotsTXT = true
 
 
 [params]
-    # since = 1990
+    since = 2019
     author = "Mike Tobias"               # Author's name
-    subtitle = "Developer 302"       # Subtitle
+    title = "Software Engineer - "
+    titleLogo = "/images/bitcoinira-logo.png"
+    titleLink = "https://bitcoinira.com/"
+    subtitle = "C#, Typescript, Go, Golf, Zen, Coffee"       # Subtitle
     cdn_url = ""           # Base CDN URL
     home_mode = "" # post or other
 
@@ -56,11 +59,13 @@ enableRobotsTXT = true
 
 
 [params.social]
+    Email   = "mike.c.tobias@gmail.com"
     GitHub = "https://github.com/mct-dev"
     Linkedin = "https://www.linkedin.com/in/mikectobias/"
-    # Strava = ""
-    Email   = "mike.c.tobias@gmail.com"
-    #Twitter = "xxxx"
+    Strava = "3304364"
+    Twitter = "https://twitter.com/mctdev"
+    Keybase = "npchampion"
+    Goodreads = "61629997-mike-tobias"
     #Instagram = "xxxx"
     #Facebook = "xxxx"
     #Telegram = "xxxx"
@@ -71,7 +76,6 @@ enableRobotsTXT = true
     #Youtubechannel = "xxxx"
     #Tumblr ="xxxx"
     #Quora = "xxxx"
-    #Keybase = "xxxx"
     #Pinterest = "xxxx"
     #Reddit = "xxxx"
     #Codepen = "xxxx"
@@ -89,7 +93,6 @@ enableRobotsTXT = true
     #Paypal = "xxxx"
     #Fivehundredpx = "xxxx"
     #Mix = "xxxx"
-    #Goodreads = "xxxx"
     #Lastfm = "xxxx"
     #Foursquare = "xxxx"
     #Hackernews = "xxxx"

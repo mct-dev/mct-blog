@@ -11,6 +11,17 @@
 			<a href="/posts/">	<img src="https://www.gravatar.com/avatar/{{ md5 .Site.Params.gravatar.email }}?s=240&d=mp" alt="gravatar"> </a>
 		</div>
 		{{ end }}
+
+    {{ $titleLogo := .Site.Params.titleLogo }}
+    {{ $titleLink := .Site.Params.titleLink }}
+    {{ with .Site.Params.title}}
+    <h2 class="title" style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px;">
+       {{ . }}
+       <a href="{{ $titleLink }}" target="_blank" rel="noreferrer">
+         <img style="margin-left: 10px; height: 28px; margin-top: 6px;" src="{{ $titleLogo }}" alt="bitcoin ira" />
+       </a>
+    </h2>
+    {{ end }}
     {{ with .Site.Params.subtitle}}
     <h2 class="description">
        {{ . }}
