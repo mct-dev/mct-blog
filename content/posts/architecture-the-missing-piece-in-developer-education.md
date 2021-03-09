@@ -32,7 +32,7 @@ Service decomposition and encapsulation are only a small part of good software a
 
 These days, I'm spending quite a bit of time thinking about software architecture. I'm analyzing different patterns and practices and deciding what seems to be good practice throughout the industry. I think there's a lot of good information to be gathered here and there could be some value in contributing to the self-taught developer's educational resources with a bit of software architecture content.
 
-Keeping my mind open and my thoughts clear. Until next time.
+Keeping an open mind and a clear head. Until next time.
 
   ~ Mike
 
